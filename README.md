@@ -12,6 +12,9 @@ sudo ./bootstrap.sh --tout             les quatre
 C'est **ce dépôt-ci qu'on clone en premier** sur une machine neuve : il connaît
 les quatre autres, aucun d'eux ne le connaît.
 
+**[UTILISATION.md](UTILISATION.md)** donne toutes les commandes, une par une —
+celles de `bootstrap.sh` et celles du dump et de la restauration de la base.
+
 ---
 
 ## Les quatre services
