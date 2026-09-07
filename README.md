@@ -77,13 +77,14 @@ transmettre.
 
 ## Ce que ce dépôt ne sauve pas
 
-**Les données.** Sur une machine vierge, `bootstrap.sh` rend un serveur qui
-marche et une base **vide** : profils, statistiques et historique des parties ne
-sont pas ici. C'est une restauration de l'installation, pas de l'exploitation —
-et c'est un sujet à part, qui n'a pas encore été ouvert.
+**Les données ne sont pas DANS ce dépôt** — profils, statistiques, historique
+des parties n'y ont pas leur place. Mais elles ne sont plus laissées de côté :
+`nctgame_server/deploy/db.sh` sort la base d'une machine et la remet sur une
+autre, et `bootstrap.sh` cherche un dump à l'installation et propose de le
+restaurer.
 
-Le script le propose tout de même quand il trouve des copies dans `data/`, mais
-il ne remplace jamais une base existante sans le demander.
+Il ne remplace jamais une base existante sans le demander. Voir
+[UTILISATION.md](UTILISATION.md#2-deploydbsh--sortir-la-base-la-remettre).
 
 **Ce qui est reproductible n'a pas à être sauvé** : le venv se refait depuis
 `requirements.txt`, la base d'adresses IP → pays se retélécharge chez db-ip, les
