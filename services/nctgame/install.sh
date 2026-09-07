@@ -59,18 +59,24 @@ fi
 if [ -f "$DIR/data/nctgame.db" ]; then
     ok "base de données présente (laissée telle quelle)"
 else
-    copies=$(ls -1t "$DIR"/data/*.db 2>/dev/null | head -5 || true)
-    if [ -n "$copies" ] && demande_oui_non "Restaurer une sauvegarde ?" n; then
-        info "copies disponibles :"
-        printf '%s\n' "$copies" | nl -w4 -s'. ' | sed 's/^/    /'
-        n=$(demande "Laquelle (numéro), ou vide pour repartir de zéro" "")
+    # Sur un serveur NEUF, c'est ici que la reprise se joue. Le dépôt du jeu
+    # porte `deploy/db.sh`, qui sort la base d'une machine et la remet sur une
+    # autre — et qui refuse un fichier abîmé plutôt que d'écraser ce qui est là.
+    # On lui laisse le travail : deux façons de restaurer finiraient par
+    # diverger, et c'est celle du dépôt qui serait juste.
+    dumps=$(ls -1t "$DIR"/data/dumps/*.sql.gz 2>/dev/null | head -5 || true)
+    if [ -n "$dumps" ] && demande_oui_non "Restaurer une sauvegarde de la base ?" o; then
+        info "sauvegardes disponibles :"
+        printf '%s\n' "$dumps" | nl -w4 -s'. ' | sed 's/^/    /'
+        n=$(demande "Laquelle (numéro), ou vide pour repartir de zéro" "1")
         if [ -n "$n" ]; then
-            src=$(printf '%s\n' "$copies" | sed -n "${n}p")
-            [ -n "$src" ] && sudo -u "$APP_USER" cp "$src" "$DIR/data/nctgame.db" \
-                && ok "restaurée depuis $(basename "$src")"
+            src=$(printf '%s\n' "$dumps" | sed -n "${n}p")
+            [ -n "$src" ] && sudo -u "$APP_USER" "$DIR/deploy/db.sh" restore "$src"
         fi
     else
-        info "base vide : elle se créera au premier lancement"
+        info "base vide : elle se créera au premier lancement."
+        info "Pour en restaurer une plus tard, déposez le fichier et lancez :"
+        info "  $DIR/deploy/db.sh restore <fichier.sql.gz>"
     fi
 fi
 
