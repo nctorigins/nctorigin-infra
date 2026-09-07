@@ -1,0 +1,40 @@
+[Unit]
+Description=NCTGame WebSocket Backend Service
+After=network.target
+
+[Service]
+Type=simple
+User=@USER@
+Group=@USER@
+WorkingDirectory=@DIR@
+Environment="PATH=@DIR@/venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="NCTGAME_HOST=127.0.0.1"
+Environment="NCTGAME_PORT=8765"
+Environment="NCTGAME_LOG_LEVEL=INFO"
+# ⚠️ Mode par défaut des parties qui ne le précisent pas.
+# Maintenu à "standard" tant que le client ne sait pas DESSINER la prison :
+# un pion à -2 s'afficherait dans sa propre cage (LudoCoordinates teste
+# `position < 0`), la libération serait donc invisible pour le joueur.
+# Le mode Devil reste testable en le demandant explicitement :
+#   POST /api/games {"mode":"devil"}
+# Basculer sur "devil" une fois le rendu client livré.
+Environment="NCTGAME_DEFAULT_MODE=standard"
+# Profils joueurs + statistiques (seul état durable). À SAUVEGARDER.
+Environment="NCTGAME_DB_PATH=@DIR@/data/nctgame.db"
+# Le plafond système par défaut (1024) borne le nombre de WebSockets
+# simultanées, soit ~250 parties à 4 joueurs. Mesuré : 1 descripteur par socket.
+LimitNOFILE=65536
+
+ExecStart=@DIR@/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8765
+
+Restart=always
+RestartSec=10
+
+StandardOutput=append:/var/log/nctgame.log
+StandardError=append:/var/log/nctgame.log
+
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

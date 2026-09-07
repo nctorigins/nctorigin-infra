@@ -1,0 +1,25 @@
+[Unit]
+Description=Quran Recognizer API Service
+After=network.target whisper-api.service
+Wants=whisper-api.service
+
+[Service]
+Type=simple
+User=@USER@
+Group=@USER@
+WorkingDirectory=/home/whisper
+Environment="PATH=@DIR@/venv/bin:/usr/local/bin:/usr/bin:/bin"
+
+ExecStart=@DIR@/venv/bin/uvicorn quran_recognizer.api:app --host 127.0.0.1 --port 8001
+
+Restart=always
+RestartSec=10
+
+StandardOutput=append:/var/log/quran-recognizer.log
+StandardError=append:/var/log/quran-recognizer.log
+
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

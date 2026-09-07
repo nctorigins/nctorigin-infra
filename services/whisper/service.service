@@ -1,0 +1,24 @@
+[Unit]
+Description=Whisper API Service
+After=network.target
+
+[Service]
+Type=simple
+User=@USER@
+Group=@USER@
+WorkingDirectory=@DIR@
+Environment="PATH=@DIR@/venv/bin:/usr/local/bin:/usr/bin:/bin"
+
+ExecStart=@DIR@/venv/bin/python whisper_api.py
+
+Restart=always
+RestartSec=10
+
+StandardOutput=append:/var/log/whisper-api.log
+StandardError=append:/var/log/whisper-api.log
+
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
