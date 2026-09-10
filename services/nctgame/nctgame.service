@@ -19,6 +19,11 @@ Environment="NCTGAME_LOG_LEVEL=INFO"
 #   POST /api/games {"mode":"devil"}
 # Basculer sur "devil" une fois le rendu client livré.
 Environment="NCTGAME_DEFAULT_MODE=standard"
+# Pourcentage des bots PRÉSENTÉS comme des humains (0 à 100) : le client ne
+# reçoit pas leur badge. Le serveur, lui, sait toujours — une partie contre un
+# bot déguisé ne compte pas au classement. Écrit ici à 0 pour qu'on sache que le
+# réglage existe ; le changer demande un redémarrage.
+Environment="NCTGAME_BOT_HUMAN_PERCENT=0"
 # Profils joueurs + statistiques (seul état durable). À SAUVEGARDER.
 Environment="NCTGAME_DB_PATH=@DIR@/data/nctgame.db"
 # Le plafond système par défaut (1024) borne le nombre de WebSockets
