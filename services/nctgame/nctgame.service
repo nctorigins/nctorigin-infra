@@ -19,10 +19,13 @@ Environment="NCTGAME_LOG_LEVEL=INFO"
 #   POST /api/games {"mode":"devil"}
 # Basculer sur "devil" une fois le rendu client livré.
 Environment="NCTGAME_DEFAULT_MODE=standard"
-# Pourcentage des bots PRÉSENTÉS comme des humains (0 à 100) : le client ne
-# reçoit pas leur badge. Le serveur, lui, sait toujours — une partie contre un
-# bot déguisé ne compte pas au classement. Écrit ici à 0 pour qu'on sache que le
-# réglage existe ; le changer demande un redémarrage.
+# Part des bots ÉTIQUETÉS HUMAINS (0 à 100). Pour le joueur ils sont humains en
+# tout : pas de badge, et ILS COMPTENT AU CLASSEMENT — ce pourcentage décide
+# donc aussi de ce qui classe. L'étiquette est définitive : changer la valeur
+# CRÉE des personnages, n'en réétiquette aucun.
+# Valeur de DÉPART seulement : une fois changée à chaud par l'administration
+# (PUT /api/admin/settings/bot_human_percent), c'est data/settings.json qui fait
+# autorité, y compris après redémarrage. Écrit ici pour qu'on sache qu'il existe.
 Environment="NCTGAME_BOT_HUMAN_PERCENT=0"
 # Profils joueurs + statistiques (seul état durable). À SAUVEGARDER.
 Environment="NCTGAME_DB_PATH=@DIR@/data/nctgame.db"
