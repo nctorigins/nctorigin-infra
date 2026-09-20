@@ -27,6 +27,13 @@ Environment="NCTGAME_DEFAULT_MODE=standard"
 # (PUT /api/admin/settings/bot_human_percent), c'est data/settings.json qui fait
 # autorité, y compris après redémarrage. Écrit ici pour qu'on sache qu'il existe.
 Environment="NCTGAME_BOT_HUMAN_PERCENT=0"
+# Nom public du serveur : il entre dans les URL des messages audio. Sans lui,
+# l'URL rendue porterait l'adresse interne 127.0.0.1, qu'aucun téléphone ne joint.
+Environment="NCTGAME_PUBLIC_BASE_URL=https://@DOMAINE@"
+# Messages audio : plafond du répertoire, en Mio. Au-delà, le dépôt REFUSE plutôt
+# que de remplir un disque partagé avec la base, les journaux et trois autres
+# services. C'est le seul endroit où un client fait grossir cette machine.
+Environment="NCTGAME_VOICE_DISK_CAP_MB=2048"
 # Profils joueurs + statistiques (seul état durable). À SAUVEGARDER.
 Environment="NCTGAME_DB_PATH=@DIR@/data/nctgame.db"
 # Le plafond système par défaut (1024) borne le nombre de WebSockets

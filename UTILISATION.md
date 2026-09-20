@@ -1,41 +1,45 @@
-# Utilisation
+# Usage
 
-Ce que font `bootstrap.sh` et le dump de la base, commande par commande.
+What `bootstrap.sh` and the database dump do, command by command.
 
-Deux scripts, deux dépôts, deux rôles :
+Two scripts, two repositories, two jobs:
 
-| | où | à quoi il sert |
+| | where | what it is for |
 |---|---|---|
-| `bootstrap.sh` | `nctorigin-infra` | poser les services sur une machine |
-| `deploy/db.sh` | `nctgame_server` | sortir la base et la remettre ailleurs |
+| `bootstrap.sh` | `nctorigin-infra` | put the services on a machine |
+| `deploy/db.sh` | `nctgame_server` | take the database out and put it back elsewhere |
 
-Les deux se rejoignent sur une machine neuve : `bootstrap.sh` installe, trouve un
-dump s'il y en a un, et propose de le restaurer.
+They meet on a fresh machine: `bootstrap.sh` installs, finds a dump if there is
+one, and offers to restore it.
+
+> The scripts themselves speak French — their flags (`--etat`, `--tout`) and
+> their variables (`COURRIEL`, `INTERACTIF`) are named in French, and so is
+> everything they print. They are quoted here exactly as they are, because a
+> command you have to translate before typing is a command you type wrong.
 
 ---
 
 # 1. `bootstrap.sh`
 
 ```
-sudo ./bootstrap.sh                    demande quoi installer
-sudo ./bootstrap.sh nctgame            un service
-sudo ./bootstrap.sh nctgame quran      plusieurs
-sudo ./bootstrap.sh --tout             les quatre
-./bootstrap.sh --etat                  ne touche à rien
-./bootstrap.sh --help                  l'aide du script
+sudo ./bootstrap.sh                    asks what to install
+sudo ./bootstrap.sh nctgame            one service
+sudo ./bootstrap.sh nctgame quran      several
+sudo ./bootstrap.sh --tout             all four
+./bootstrap.sh --etat                  touches nothing
+./bootstrap.sh --help                  the script's own help
 ```
 
-Les quatre services connus : **`nctgame`**, **`quran`**, **`whisper`**,
-**`jitsi`**.
+The four known services: **`nctgame`**, **`quran`**, **`whisper`**, **`jitsi`**.
 
-## 1.1 Voir où on en est
+## 1.1 See where things stand
 
 ```
 ./bootstrap.sh --etat
 ```
 
-Sans `sudo`, sans rien modifier. C'est la commande à taper en premier quand on
-arrive sur une machine dont on ne sait rien.
+No `sudo`, nothing modified. This is the first command to type when you arrive
+on a machine you know nothing about.
 
 ```
   SERVICE    DOMAINE                          UNITÉ    NGINX    TLS
@@ -45,122 +49,117 @@ arrive sur une machine dont on ne sait rien.
   jitsi      meet.nctorigin.com               actif    posé     oui
 ```
 
-**`TLS` à `?` n'est pas une absence de certificat** : c'est que le script n'a pas
-le droit de lire `/etc/letsencrypt`. Relancez avec `sudo` pour trancher. Cette
-distinction est délibérée — confondre « absent » et « je n'ai pas regardé » a
-déjà coûté deux fausses pistes dans ce projet.
+**`TLS` showing `?` is not a missing certificate**: it means the script is not
+allowed to read `/etc/letsencrypt`. Run it again with `sudo` to settle the
+question. The distinction is deliberate — confusing "absent" with "I did not
+look" has already cost two false trails in this project.
 
-## 1.2 Installer
+## 1.2 Install
 
 ```
-sudo ./bootstrap.sh                # il demande
-sudo ./bootstrap.sh nctgame        # ou on lui dit
+sudo ./bootstrap.sh                # it asks
+sudo ./bootstrap.sh nctgame        # or you tell it
 sudo ./bootstrap.sh --tout
 ```
 
-Il pose d'abord le socle — paquets, compte de service, groupes, ports — puis
-chaque service demandé. Un service qui échoue n'arrête pas les autres : le
-résumé final les nomme, et **relancer reprend où l'on s'est arrêté** sans
-défaire ce qui a réussi.
+It lays the groundwork first — packages, service account, groups, ports — then
+each requested service. A service that fails does not stop the others: the final
+summary names them, and **running it again resumes where it stopped** without
+undoing what succeeded.
 
-Un nom de service inconnu est refusé **avant** que `sudo` ne soit exigé : une
-faute de frappe n'a pas à coûter une saisie de mot de passe.
+An unknown service name is refused **before** `sudo` is required: a typo should
+not cost you a password prompt.
 
-## 1.3 Sans questions
+## 1.3 Without questions
 
 ```
 INTERACTIF=0 sudo ./bootstrap.sh --tout
 ```
 
-Chaque question prend alors sa réponse par défaut. Utile depuis un autre script,
-ou dans une image. **Attention** : sans clavier, une attente de DNS ne peut pas
-attendre — le script s'arrête au lieu de boucler.
+Every question then takes its default answer. Useful from another script, or in
+an image. **Careful**: with no keyboard, a wait for DNS cannot wait — the script
+stops instead of looping.
 
-## 1.4 Les variables
+## 1.4 The variables
 
-| | défaut | |
+| | default | |
 |---|---|---|
-| `APP_USER` | `whisper` | le compte qui porte les services |
-| `COURRIEL` | *(vide)* | adresse donnée à Let's Encrypt |
-| `INTERACTIF` | `1` | `0` pour ne rien demander |
+| `APP_USER` | `whisper` | the account that owns the services |
+| `COURRIEL` | *(empty)* | address given to Let's Encrypt |
+| `INTERACTIF` | `1` | `0` to ask nothing |
 
 ```
 APP_USER=jeu COURRIEL=ops@nctorigin.com sudo -E ./bootstrap.sh nctgame
 ```
 
-`sudo -E` est nécessaire pour que les variables traversent.
+`sudo -E` is required for the variables to survive.
 
-## 1.5 Ce qu'il demande, et pourquoi
+## 1.5 What it asks, and why
 
-Le script ne s'arrête pas devant ce qu'il ne peut pas faire — il vous le fait
-faire.
+The script does not stop in front of what it cannot do — it has you do it.
 
-**Le DNS.** Si le domaine ne pointe pas encore vers la machine, il affiche
-l'enregistrement exact à créer — type, nom, valeur, TTL — puis **attend et
-revérifie toutes les trente secondes**. Vous créez l'entrée dans un autre
-onglet, et il repart seul. Sans cela, certbot échoue d'une façon qui n'explique
-rien.
+**DNS.** If the domain does not point at the machine yet, it prints the exact
+record to create — type, name, value, TTL — then **waits and checks again every
+thirty seconds**. You create the entry in another tab, and it carries on by
+itself. Without this, certbot fails in a way that explains nothing.
 
-**La publicité** (nctgame). Éteinte par défaut : sans `data/ads.json`, le serveur
-répond `{"enabled": false}` à tout le monde, ce qui est l'état voulu. Il demande
-avant d'allumer, et prévient que sans compte AdMob l'application n'affichera que
-les blocs d'essai de Google.
+**Advertising** (nctgame). Off by default: with no `data/ads.json`, the server
+answers `{"enabled": false}` to everyone, which is the intended state. It asks
+before turning it on, and warns that without an AdMob account the app will only
+show Google's test blocks.
 
-**La base de données** (nctgame). S'il trouve un dump, il propose de le
-restaurer. Il ne remplace **jamais** une base existante sans le demander.
+**The database** (nctgame). If it finds a dump, it offers to restore it. It
+**never** replaces an existing database without asking.
 
-**La preuve d'identité** (nctgame). Sur une machine neuve il n'y a aucun appareil
-ancien à ménager : il propose de l'exiger dès le départ, ce qui ne coûte rien
-qu'à ce moment-là.
+**Proof of identity** (nctgame). On a fresh machine there are no older devices
+to spare: it offers to require proof from the start, which costs nothing only at
+that moment.
 
-**La clef d'administration** (nctgame). Fabriquée, jamais restaurée, et jamais
-affichée — le script dit où la lire au moment de la transmettre.
+**The admin key** (nctgame). Minted, never restored, and never displayed — the
+script says where to read it at the moment you need to hand it over.
 
-**La clef d'API** (whisper). Sans elle le service refuse tout, y compris à son
-propriétaire. Il propose d'en fabriquer une, et prévient qu'elle ne sera plus
-jamais montrée.
+**The API key** (whisper). Without it the service refuses everyone, its owner
+included. It offers to mint one, and warns that it will never be shown again.
 
-**Jitsi** ne s'installe pas comme les autres : le script rappelle les trois
-choses qu'il ne peut pas faire — dont **l'UDP 10000 à ouvrir dans la console
-Hetzner**, sans quoi tout paraît correct et la vidéo ne passe pas — puis
-propose de lancer `v3.1-safe`, le seul des sept scripts qui sache que la machine
-héberge déjà autre chose.
+**Jitsi** does not install like the others: the script recalls the three things
+it cannot do — including **UDP 10000, to be opened in the Hetzner console**,
+without which everything looks right and no video gets through — then offers to
+run `v3.1-safe`, the only one of the seven scripts that knows the machine
+already hosts something else.
 
-## 1.6 Le relancer ne casse rien
+## 1.6 Running it again breaks nothing
 
-C'est une propriété, pas une tolérance. Sur une machine installée, `bootstrap.sh`
-met le code à jour, réinstalle les dépendances, réécrit les configurations et
-redémarre — sans rien dupliquer.
+That is a property, not a tolerance. On an installed machine, `bootstrap.sh`
+updates the code, reinstalls dependencies, rewrites the configuration files and
+restarts — without duplicating anything.
 
-C'est aussi **la seule façon de l'éprouver** sans machine vierge sous la main :
-un script d'installation qu'on ne lance qu'une fois est un script qu'on
-n'éprouve jamais, et qui échoue le jour où il compte.
+It is also **the only way to exercise it** without a blank machine at hand: an
+install script you run only once is a script you never exercise, and which fails
+the day it matters.
 
-Il ne touche pas à un dépôt qui a des modifications non enregistrées : il le
-signale et passe. Installer proprement ne vaut pas d'écraser le travail de
-quelqu'un.
+It does not touch a repository holding uncommitted changes: it says so and moves
+on. Installing cleanly is not worth overwriting someone's work.
 
 ---
 
-# 2. `deploy/db.sh` — sortir la base, la remettre
+# 2. `deploy/db.sh` — take the database out, put it back
 
-Depuis `nctgame_server`.
+From `nctgame_server`.
 
 ```
-deploy/db.sh dump              écrit data/dumps/nctgame-<date>.sql.gz
-deploy/db.sh dump <fichier>    écrit où vous voulez
-deploy/db.sh restore <fichier> remplace la base par ce fichier
-deploy/db.sh list              les sauvegardes présentes
+deploy/db.sh dump              writes data/dumps/nctgame-<date>.sql.gz
+deploy/db.sh dump <file>       writes wherever you want
+deploy/db.sh restore <file>    replaces the database with that file
+deploy/db.sh list              the dumps at hand
 ```
 
-## 2.1 Sortir la base
+## 2.1 Take it out
 
 ```
 deploy/db.sh dump
 ```
 
-Fonctionne **pendant que le service tourne**. Résultat : une douzaine de
-kilo-octets.
+Works **while the service is running**. Result: a dozen kilobytes.
 
 ```
   source : /home/whisper/nctgame_server/data/nctgame.db
@@ -170,84 +169,85 @@ kilo-octets.
       players=22
 ```
 
-La seconde ligne est la moitié utile de la commande : **le dump est rechargé
-dans une base jetable et comparé table par table à l'original.** Un dump qu'on
-ne sait pas relire n'est pas une sauvegarde ; la vérification coûte une seconde
-et transforme un espoir en fait.
+The second line is the useful half of the command: **the dump is reloaded into a
+throwaway database and compared table by table against the original.** A dump
+you cannot read back is not a backup; the check costs a second and turns a hope
+into a fact.
 
-**Pourquoi pas un `cp`.** La base est en mode WAL : les écritures récentes vivent
-dans `nctgame.db-wal` et n'entrent dans le fichier principal qu'au point de
-contrôle suivant — trois mégaoctets en attente, mesurés sur cette machine.
-Copier `nctgame.db` seul donnerait une base amputée de tout ce qui vient d'être
-joué, **et elle s'ouvrirait sans erreur**, ce qui est la pire façon d'avoir tort.
+**Why not a `cp`.** The database runs in WAL mode: recent writes live in
+`nctgame.db-wal` and only enter the main file at the next checkpoint — three
+megabytes pending, measured on this machine. Copying `nctgame.db` alone would
+give you a database missing everything just played, **and it would open without
+an error**, which is the worst way to be wrong.
 
-## 2.2 La remettre
+## 2.2 Put it back
 
 ```
 deploy/db.sh restore data/dumps/nctgame-20260907T162843.sql.gz
 ```
 
-Trois précautions, dans cet ordre :
+Three precautions, in this order:
 
-1. **si le service tourne**, il est arrêté puis relancé — deux écrivains sur le
-   même fichier donneraient deux vérités ;
-2. **la base présente est mise de côté**, datée, jamais écrasée en silence.
-   Restaurer la mauvaise sauvegarde est une erreur qu'on ne fait qu'une fois, et
-   qu'on ne peut défaire que si l'ancienne existe encore ;
-3. **la nouvelle base est construite et lue en entier avant de remplacer quoi
-   que ce soit.** Un fichier abîmé est refusé et laisse la machine exactement
-   comme elle était.
+1. **if the service is running**, it is stopped and restarted — two writers on
+   the same file would give two truths;
+2. **the current database is set aside**, dated, never overwritten silently.
+   Restoring the wrong backup is a mistake you make once, and can only undo if
+   the old one still exists;
+3. **the new database is built and read in full before anything is replaced.**
+   A damaged file is refused and leaves the machine exactly as it was.
 
-Restaurer ailleurs — pour vérifier une sauvegarde, ou préparer une autre
-machine — ne concerne pas le service :
-
-```
-NCTGAME_DB=/tmp/essai.db deploy/db.sh restore <fichier>
-```
-
-## 2.3 Sur un serveur neuf
+Restoring elsewhere — to check a backup, or to prepare another machine — does
+not concern the service:
 
 ```
-# ici
+NCTGAME_DB=/tmp/essai.db deploy/db.sh restore <file>
+```
+
+## 2.3 On a fresh server
+
+```
+# here
 deploy/db.sh dump
-# le fichier voyage comme vous voulez : scp, clef USB, courriel
+# the file travels however you like: scp, USB stick, email
 
-# là-bas
-sudo ./bootstrap.sh nctgame        # il trouve le dump et le propose
+# over there
+sudo ./bootstrap.sh nctgame        # it finds the dump and offers it
 ```
 
-Ou à la main, si la base est déjà installée :
+Or by hand, if the database is already installed:
 
 ```
-deploy/db.sh restore <fichier.sql.gz>
+deploy/db.sh restore <file.sql.gz>
 ```
 
-## 2.4 Ce que le dump ne contient pas
+## 2.4 What the dump does not contain
 
-Il contient **la base** : profils, statistiques, historique des parties. Rien
-d'autre, et c'est voulu.
+It contains **the database**: profiles, statistics, game history. Nothing else,
+and that is deliberate.
 
-| | où cela se retrouve |
+| | where it comes back from |
 |---|---|
-| `data/ads.json` | quelques lignes, à réécrire ou recopier |
-| la clef d'administration | **refabriquée**, jamais restaurée |
-| les jetons des joueurs | dans la base — ils suivent donc le dump |
-| la base d'adresses IP → pays | retéléchargée par `tools/refresh_geoip.py` |
-| les journaux de partie | non — diagnostic, pas donnée |
+| `data/ads.json` | a few lines, to rewrite or copy over |
+| the admin key | **minted again**, never restored |
+| player tokens | in the database — so they travel with the dump |
+| the IP → country database | downloaded again by `tools/refresh_geoip.py` |
+| game journals | no — diagnostics, not data |
+| voice messages | no — they live in `data/voice/` and delete themselves after 24 h |
 
-Un secret qui voyage d'une machine à l'autre cesse d'en être un : c'est pourquoi
-la clef d'administration se refait plutôt que de se copier.
+A secret that travels from one machine to another stops being one: that is why
+the admin key is minted again rather than copied.
 
 ---
 
-# 3. Les autres scripts de `nctgame_server/deploy/`
+# 3. The other scripts in `nctgame_server/deploy/`
 
-Hors du sujet de ce guide, mais ils existent et se ressemblent :
+Outside the scope of this guide, but they exist and they look alike:
 
 | | |
 |---|---|
-| `require-auth.sh` | exiger la preuve d'identité ; `--wipe`, `--revert`, `--status` |
-| `open-admin.sh` | ouvrir l'API d'administration ; `--rotate`, `--close`, `--status` |
+| `require-auth.sh` | require proof of identity; `--wipe`, `--revert`, `--status` |
+| `open-admin.sh` | open the admin API; `--rotate`, `--close`, `--status` |
+| `open-accounts.sh` | override the Apple/Google app identifiers; `--close`, `--status` |
 
-Chacun porte son mode d'emploi dans son en-tête, et un `--status` qui ne modifie
-rien.
+Each carries its own instructions in its header, and a `--status` that changes
+nothing.
