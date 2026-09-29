@@ -120,6 +120,37 @@ elif demande_oui_non "Ouvrir l'API d'administration (fabrique une clef) ?" n; th
     info "    /etc/systemd/system/nctgame.service.d/admin-key.conf"
 fi
 
+# --- Le secret du relais, si coturn est déjà là ------------------------------
+# Sur une machine NEUVE, coturn n'existe pas encore à cette étape : l'ordre des
+# services est `nctgame, quran, whisper, jitsi`, et c'est l'étape jitsi qui pose le
+# secret, juste après avoir installé coturn. Ici on couvre l'autre cas, celui d'une
+# RÉINSTALLATION de ce seul service sur une machine qui a déjà tout : sans ça,
+# `bootstrap.sh --un-seul nctgame` laisserait la parole en direct éteinte.
+if grep -qE '^static-auth-secret=' /etc/turnserver.conf 2>/dev/null; then
+    # Sans question et sans redémarrage de sa part : c'est nous qui décidons juste
+    # après, en sachant si ça sert à quelque chose.
+    # `|| alerte` : avec `set -euo pipefail`, un échec de ce script auxiliaire
+    # ferait avorter TOUTE l'installation du service. Une fonction facultative qui
+    # tombe ne doit pas emporter le reste — c'est la même règle que le tiret devant
+    # l'EnvironmentFile de l'unité.
+    INTERACTIF=0 bash "$ICI/services/nctgame/turn-secret.sh" 2>&1 | sed 's/^/  /' \
+        || alerte "Le secret du relais n'a pas pu être posé : parole en direct éteinte"
+    # `pose_unite` a redémarré le service PLUS HAUT, donc avant que le secret
+    # existe : il tourne sans. On ne redémarre que si c'est VRAIMENT le cas —
+    # sinon on couperait les parties en cours pour rien, ce qui est déjà arrivé.
+    pid="$(systemctl show "$S" -p MainPID --value 2>/dev/null || true)"
+    if [ -n "$pid" ] && [ "$pid" != 0 ] && [ -r "/proc/$pid/environ" ] \
+       && ! tr '\0' '\n' < "/proc/$pid/environ" | grep -q '^NCTGAME_TURN_SECRET='; then
+        if demande_oui_non "Redémarrer $S pour qu'il lise le secret du relais ? (coupe les parties en cours)" o; then
+            systemctl restart "$S" && ok "$S redémarré : parole en direct configurée"
+        else
+            alerte "Parole en direct éteinte jusqu'au prochain redémarrage de $S"
+        fi
+    else
+        ok "Secret du relais déjà lu par $S"
+    fi
+fi
+
 # --- Vérification ----------------------------------------------------------
 sleep 1
 code=$(curl -s -m 10 -o /dev/null -w '%{http_code}' "https://$DOM/health" 2>/dev/null || echo 000)

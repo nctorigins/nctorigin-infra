@@ -36,6 +36,18 @@ Environment="NCTGAME_PUBLIC_BASE_URL=https://@DOMAINE@"
 Environment="NCTGAME_VOICE_DISK_CAP_MB=2048"
 # Profils joueurs + statistiques (seul état durable). À SAUVEGARDER.
 Environment="NCTGAME_DB_PATH=@DIR@/data/nctgame.db"
+# Parole en direct : les quatre appareils se parlent DE PAIR À PAIR, aucun média
+# ne passe ici. Ce fichier ne porte qu'une chose : le secret que `coturn` vérifie,
+# pour délivrer des identifiants temporaires de relais aux réseaux qui refusent
+# le direct. Il vit hors du dépôt — cette unité est versionnée, un secret n'a rien
+# à y faire — et il est écrit par `services/nctgame/turn-secret.sh`, en 600 root.
+#
+# Le tiret n'est pas un détail : sans lui, une machine où la parole en direct n'a
+# pas encore été configurée refuserait de DÉMARRER LE JEU pour un fichier absent —
+# une fonction facultative qui empêche le service principal de vivre. Avec lui, le
+# fichier manquant est toléré, et la route refuse en se nommant
+# (`live_voice_not_configured`) au lieu de délivrer des identifiants mort-nés.
+EnvironmentFile=-/etc/nctgame/live-voice.env
 # Le plafond système par défaut (1024) borne le nombre de WebSockets
 # simultanées, soit ~250 parties à 4 joueurs. Mesuré : 1 descripteur par socket.
 LimitNOFILE=65536

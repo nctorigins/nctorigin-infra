@@ -127,6 +127,77 @@ without which everything looks right and no video gets through — then offers t
 run `v3.1-safe`, the only one of the seven scripts that knows the machine
 already hosts something else.
 
+**The relay secret** (nctgame, **automatic**). The game's live voice is **peer to
+peer**: no media passes through this machine, no mixing, no transcoding, no
+bandwidth. It needs one thing from `coturn` — temporary relay credentials for the
+networks that refuse a direct path — and those are computed from the secret coturn
+already verifies, so there is no account to create and none to revoke. The game
+cannot read `/etc/turnserver.conf` (it does not run as root), so the secret has to
+be copied to it.
+
+**`bootstrap.sh` does that itself**, and that is deliberate: a command to type by
+hand is a command forgotten on the next machine. It happens during the **jitsi**
+step, because that is the only moment the secret exists — the install order is
+`nctgame, quran, whisper, jitsi`, so coturn does not exist yet when the game is
+installed. Reinstalling the game alone on a machine that already has coturn also
+poses it. Either way the service is restarted only when it is really running
+without the secret, and the question names what the cut costs.
+
+By hand, if you want it outside an install:
+
+```
+sudo bash services/nctgame/turn-secret.sh
+```
+
+It reads the secret, the realm and the port from coturn, writes
+`/etc/nctgame/live-voice.env` (600, root), drops in the one line that makes the
+service read that file, and **then verifies the running process actually has the
+secret** instead of announcing it. That check exists because the script once said
+`✓` while the installed unit — older than the repo's template — read no
+environment file at all: the restart had destroyed the games in progress for
+nothing, and nothing said so. Until the secret is in place, the live-voice route
+answers `live_voice_not_configured`, which is the truth rather than a silence.
+
+Both relay scripts take `TURN_CONF`, `ENV_FILE`, `FRAGMENT` and `UNITE` from the
+environment when given, so they can be exercised against a sandbox copy instead of
+the live machine. A script that can only be run for real is a script nobody
+replays — and these two stopped halfway twice before that was true of them.
+
+Two limits it prints, because neither is visible from the machine: **UDP 3478
+must be open in the Hetzner console**, and while `no-tcp` sits in
+`/etc/turnserver.conf` coturn listens **only over UDP** — a player behind a
+network that blocks UDP gets no voice at all. `services/nctgame/turn-tcp.sh` opens
+that path, and it is not worth waiting for a field report: the networks concerned
+are offices, hotels, hospitals and schools, which you only meet in production
+through a player who cannot say why the voice failed. Until it runs, the server
+deliberately advertises no TCP address, since a relay that always fails is not a
+fallback.
+
+That script opens plain TCP and **refuses to enable TLS** (`turns:`), because
+coturn's certificate here is self-signed and every client would reject it. It says
+so, names the two ways to fix it — copying that one certificate for coturn at each
+renewal, which means restarting coturn every two months, or granting coturn the
+shared store, which means the keys of all four services — and changes nothing on
+its own. Port 443, which would cover the strictest networks, is already nginx's
+for those four services and there is only one IPv4: it would take SNI
+multiplexing in front of everything, or a second public address.
+
+**The Jitsi room door** (jitsi, optional, **not needed by the game**). A fresh
+Jitsi accepts anyone: whoever knows a room name walks in. This script closes
+that domain behind a signed token:
+
+```
+sudo bash services/jitsi/token-auth.sh meet.nctorigin.com
+```
+
+It was written when the game's live voice went through the Jitsi SDK; the client
+dropped Jitsi — the SDK takes the whole screen, and their screen is a Ludo board
+— so the game no longer mints any Jitsi token. Run it only if you want that
+domain closed to strangers, and know what it costs: afterwards **no** room
+there opens without a JWT, including a meeting between people. It backs the
+config up, checks it **before** restarting anything, and refuses to guess if it
+does not recognise the file.
+
 ## 1.6 Running it again breaks nothing
 
 That is a property, not a tolerance. On an installed machine, `bootstrap.sh`
