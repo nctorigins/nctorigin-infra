@@ -19,8 +19,35 @@ Environment="NCTGAME_LOG_LEVEL=INFO"
 #   POST /api/games {"mode":"devil"}
 # Basculer sur "devil" une fois le rendu client livré.
 Environment="NCTGAME_DEFAULT_MODE=standard"
+# Part des bots ÉTIQUETÉS HUMAINS (0 à 100). Pour le joueur ils sont humains en
+# tout : pas de badge, et ILS COMPTENT AU CLASSEMENT — ce pourcentage décide
+# donc aussi de ce qui classe. L'étiquette est définitive : changer la valeur
+# CRÉE des personnages, n'en réétiquette aucun.
+# Valeur de DÉPART seulement : une fois changée à chaud par l'administration
+# (PUT /api/admin/settings/bot_human_percent), c'est data/settings.json qui fait
+# autorité, y compris après redémarrage. Écrit ici pour qu'on sache qu'il existe.
+Environment="NCTGAME_BOT_HUMAN_PERCENT=0"
+# Nom public du serveur : il entre dans les URL des messages audio. Sans lui,
+# l'URL rendue porterait l'adresse interne 127.0.0.1, qu'aucun téléphone ne joint.
+Environment="NCTGAME_PUBLIC_BASE_URL=https://@DOMAINE@"
+# Messages audio : plafond du répertoire, en Mio. Au-delà, le dépôt REFUSE plutôt
+# que de remplir un disque partagé avec la base, les journaux et trois autres
+# services. C'est le seul endroit où un client fait grossir cette machine.
+Environment="NCTGAME_VOICE_DISK_CAP_MB=2048"
 # Profils joueurs + statistiques (seul état durable). À SAUVEGARDER.
 Environment="NCTGAME_DB_PATH=@DIR@/data/nctgame.db"
+# Parole en direct : les quatre appareils se parlent DE PAIR À PAIR, aucun média
+# ne passe ici. Ce fichier ne porte qu'une chose : le secret que `coturn` vérifie,
+# pour délivrer des identifiants temporaires de relais aux réseaux qui refusent
+# le direct. Il vit hors du dépôt — cette unité est versionnée, un secret n'a rien
+# à y faire — et il est écrit par `services/nctgame/turn-secret.sh`, en 600 root.
+#
+# Le tiret n'est pas un détail : sans lui, une machine où la parole en direct n'a
+# pas encore été configurée refuserait de DÉMARRER LE JEU pour un fichier absent —
+# une fonction facultative qui empêche le service principal de vivre. Avec lui, le
+# fichier manquant est toléré, et la route refuse en se nommant
+# (`live_voice_not_configured`) au lieu de délivrer des identifiants mort-nés.
+EnvironmentFile=-/etc/nctgame/live-voice.env
 # Le plafond système par défaut (1024) borne le nombre de WebSockets
 # simultanées, soit ~250 parties à 4 joueurs. Mesuré : 1 descripteur par socket.
 LimitNOFILE=65536
