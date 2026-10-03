@@ -20,6 +20,21 @@
 #    utilisable d'un script qu'on relance six fois.
 
 set -euo pipefail
+# CE QUE `set -e` ARRÊTE, ET CE QU'IL N'ARRÊTE PAS. Écrit ici une fois pour que
+# personne ne le redevine : trois commentaires de ce dépôt l'ont affirmé de
+# travers, et les corriger a demandé de l'éprouver plutôt que de le relire.
+#
+#   * `[ test ] && commande`, test FAUX : **n'arrête rien**, où que ce soit —
+#     ni au milieu d'un script, ni en dernière commande d'un groupe `{ }`.
+#     `set -e` épargne les commandes d'une liste `&&`, sauf celle qui suit le
+#     dernier `&&`. Cette forme est donc sans danger, et la préférer à un `if`
+#     relève du style, pas de la sûreté.
+#   * la même en dernière commande d'une FONCTION : la fonction rend non nul,
+#     et c'est l'APPEL de la fonction qui arrête l'appelant. C'est le seul cas
+#     de cette famille qui morde — il n'y en a aucun dans ce dépôt, vérifié.
+#   * un PIPELINE dont une commande non finale échoue, avec `pipefail` :
+#     **arrête**. C'est le cas réel rencontré ici (voir `pose_rotation` et
+#     l'appel de `turn-secret.sh`), et celui qui justifie un `|| true`.
 
 # --- Dire ------------------------------------------------------------------
 _c_vert=$'\033[0;32m'; _c_bleu=$'\033[0;34m'; _c_jaune=$'\033[1;33m'
@@ -290,9 +305,11 @@ EOF
     else
         echec "fichier de rotation refusé par logrotate — RIEN n'a été posé"
         # `|| true` : ce pipeline sert à MONTRER l'erreur, donc il rend non nul
-        # par construction — et `set -e` tuerait la fonction juste avant le
-        # nettoyage, laissant le fichier invalide en place. C'est la troisième
-        # fois que cette forme mord dans ce dépôt ; d'où le commentaire.
+        # par construction — et avec `pipefail`, `set -e` tue la fonction juste
+        # avant le nettoyage, laissant le fichier invalide en place. Observé ici,
+        # pas déduit : le fichier `.nouveau` survivait. C'est le SEUL cas de cette
+        # famille réellement rencontré dans ce dépôt — on avait d'abord écrit
+        # « la troisième fois », et les deux autres étaient des diagnostics faux.
         logrotate --debug "${cible}.nouveau" 2>&1 \
             | grep -E "^error" | sed 's/^/      /' | head -3 || true
         rm -f "${cible}.nouveau"

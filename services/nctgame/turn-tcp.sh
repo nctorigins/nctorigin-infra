@@ -107,11 +107,13 @@ fi
 # `no-tcp-relay` est une AUTRE chose et on n'y touche pas : il interdit de
 # relayer VERS un pair en TCP, ce dont la voix n'a pas besoin. Le retirer
 # ouvrirait un relais TCP sortant sans que personne l'ait demandé.
-# `if` et non `test && commande` : avec `set -e`, une liste `A && B` dont le test
-# A échoue rend un code non nul, et le script s'arrête là. Sur une RELANCE — où
-# `no-tcp` est déjà retiré, donc où le test est faux — le script serait mort
-# juste avant de poser le fragment. C'est la même faute que la variable non liée :
-# un script qui s'arrête au milieu laisse un état que personne n'a voulu.
+# `if` plutôt que `test && commande`, par lisibilité et rien d'autre.
+#
+# On a d'abord écrit ici que `set -e` arrêtait le script sur un test faux, et que
+# la relance en mourait. **C'est faux** : une liste `&&` dont le test échoue
+# n'arrête rien (voir la note en tête de lib/common.sh, établie en l'éprouvant).
+# Le défaut qui a vraiment laissé ce script à moitié fait était une variable non
+# liée — `$meet.nctorigin.com` — pas cette forme-ci.
 if grep -qE '^\s*no-tcp-relay' "$TURN_CONF"; then
     dit "no-tcp-relay laissé en place (il ne concerne pas ce chemin)"
 fi
@@ -204,9 +206,9 @@ mkdir -p "$(dirname "$UNITE")"
         'Environment="NCTGAME_TURN_TCP=1"'
     # Le TLS n'est annoncé QUE s'il est utilisable. Annoncer les deux d'un seul
     # geste aurait remis le défaut qu'on vient d'éviter, en plus discret.
-    # `|| true` : sans lui, un TLS non prêt fait échouer la dernière commande du
-    # groupe, et `set -e` arrêterait le script juste avant le daemon-reload — le
-    # travail serait fait à moitié, sans que rien ne le dise.
+    # `if` et non `&&`, pour que la lecture suive la décision. Le commentaire
+    # d'origine invoquait ici `set -e` sur la dernière commande du groupe : faux
+    # aussi, et vérifié (cas E de la note en tête de lib/common.sh).
     if [ "$TLS_PRET" = 1 ]; then
         printf '%s\n' \
             "# Certificat valide et lisible : le TLS est utilisable." \

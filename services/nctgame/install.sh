@@ -71,7 +71,24 @@ else
         n=$(demande "Laquelle (numéro), ou vide pour repartir de zéro" "1")
         if [ -n "$n" ]; then
             src=$(printf '%s\n' "$dumps" | sed -n "${n}p")
-            [ -n "$src" ] && sudo -u "$APP_USER" "$DIR/deploy/db.sh" restore "$src"
+            # Un numéro hors liste rend `src` vide. L'ancienne forme
+            # — `[ -n "$src" ] && … restore "$src"` — ne faisait alors RIEN, et ne
+            # le disait pas : l'opérateur tapait 7 au lieu de 3, voyait défiler la
+            # suite de l'installation, et repartait avec une base vide en croyant
+            # avoir restauré. C'est la seule étape qui touche à l'état durable ;
+            # un silence y coûte plus cher qu'ailleurs.
+            #
+            # (On avait d'abord écrit que cette forme ARRÊTAIT l'installation.
+            # C'était faux — voir la note sur `set -e` en tête de lib/common.sh.
+            # Le défaut est plus petit que annoncé, et il valait quand même ces
+            # quatre lignes.)
+            if [ -n "$src" ]; then
+                sudo -u "$APP_USER" "$DIR/deploy/db.sh" restore "$src"
+            else
+                alerte "Numéro hors liste ($n) : aucune sauvegarde restaurée."
+                info "La base se créera vide au premier lancement, ou plus tard :"
+                info "  $DIR/deploy/db.sh restore <fichier.sql.gz>"
+            fi
         fi
     else
         info "base vide : elle se créera au premier lancement."
