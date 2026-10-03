@@ -198,7 +198,35 @@ there opens without a JWT, including a meeting between people. It backs the
 config up, checks it **before** restarting anything, and refuses to guess if it
 does not recognise the file.
 
-## 1.6 Running it again breaks nothing
+## 1.6 Two guardrails it applies to every service
+
+**The repository's own tests run before the service is replaced**, and a failure
+stops that service's install before systemd is touched — so a repository that does
+not pass its own tests never takes over from one that is running. Only the offline
+suites are used: the game's Ludo rules (118 cases, about a second) and the quran
+aligner (41 cases, instant). The ones that open a port are deliberately left out —
+a port already taken during an install would fail the install for the wrong
+reason. `whisper-api` carries no tests, and nothing pretends otherwise.
+
+**Log rotation is posed for all three services**: daily, 14 days, compressed, and
+a size cap — 50 MiB for the game and the quran, 100 MiB for whisper, which logs a
+line per audio request. `copytruncate`, because systemd holds the file open with
+`append:`: renaming it would leave the service writing into the renamed inode, and
+the rotation would be invisible.
+
+This one closes a real gap. The three units write to `/var/log/<service>.log`, the
+three rotation files existed on the machine in service — posed years ago by each
+repository's own installer — and **this repository posed none**. A machine
+installed by this bootstrap wrote without a bound, and nobody would have seen it
+before the disk was full. That is not hypothetical: on 22 September 2026 a full
+disk took the game down for four hours, through a different file. We capped that
+source and forgot this one.
+
+Each rotation file is written beside its target, **validated by logrotate itself**,
+and only then moved into place: one invalid file there makes rotation fail for
+every service on the machine, once a day, silently.
+
+## 1.7 Running it again breaks nothing
 
 That is a property, not a tolerance. On an installed machine, `bootstrap.sh`
 updates the code, reinstalls dependencies, rewrites the configuration files and

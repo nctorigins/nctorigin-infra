@@ -35,7 +35,12 @@ else
     info  "  sudo -u $APP_USER $DIR/venv/bin/python $DIR/whisper-keys add <nom>"
 fi
 
+# Aucune épreuve dans ce dépôt : on ne feint pas d'en lancer. Le dire est plus
+# utile que de faire semblant — c'est ce qui manque, pas ce qu'on a oublié.
 pose_unite "$ICI/services/$S/service.service" "$UNI" "$DIR" "$APP_USER"
+# 100 Mio ici et 50 ailleurs : la transcription journalise par requête, et une
+# requête porte un fichier audio. C'est la valeur qu'avait déjà cette machine.
+pose_rotation "$UNI" "/var/log/${UNI}.log" 100M
 attends_dns "$DOM" || alerte "on continue, mais le certificat va probablement échouer"
 pose_nginx "$ICI/services/$S/nginx.conf" "$DOM" "$PRT"
 pose_certificat "$DOM" "$COURRIEL"

@@ -80,8 +80,17 @@ else
     fi
 fi
 
+# --- Épreuves, AVANT de toucher au service en place -------------------------
+# Les règles du Ludo, dé forcé, sans serveur ni base : 118 cas en une seconde.
+# C'est le seul jeu d'épreuves du dépôt qui ne demande rien — les autres ouvrent
+# un port, et un port pris pendant une installation ferait échouer l'installation
+# pour une mauvaise raison.
+verifie_epreuves "$DIR" "$APP_USER" venv/bin/python tests/test_ludo_logic.py
+
 # --- Service, nginx, certificat --------------------------------------------
 pose_unite "$ICI/services/$S/nctgame.service" "$S" "$DIR" "$APP_USER"
+# 50 Mio par journal : le service écrit une ligne par connexion et par partie.
+pose_rotation "$S" "/var/log/${S}.log" 50M
 attends_dns "$DOM" || alerte "on continue, mais le certificat va probablement échouer"
 pose_nginx "$ICI/services/$S/nginx.conf" "$DOM" "$PRT"
 pose_certificat "$DOM" "$COURRIEL"
