@@ -93,7 +93,26 @@ recette, et la recette est dans le script.
 
 ## Le pare-feu de Hetzner
 
-Il n'est pas sur la machine, et rien ici ne peut l'ouvrir. Jitsi a besoin de
-**l'UDP 10000** depuis la console de l'hébergeur ; sans lui tout paraît correct
-et la vidéo ne passe pas. Le module Jitsi le rappelle avant de commencer plutôt
-qu'après avoir échoué.
+Il n'est pas sur la machine, et rien ici ne peut l'ouvrir : c'est la console de
+l'hébergeur, ou son API avec un jeton.
+
+**Sur CETTE machine, au 3 octobre 2026, il n'en existe aucun** — vérifié dans la
+console (« You have no Firewalls created yet »), et confirmé par la trace : le
+TCP 3478 s'est mis à écouter le 30 septembre à 14 h 34 et recevait des connexions
+venues de l'internet deux heures plus tard, sans avoir été déclaré nulle part en
+amont. Tant que cela reste vrai, **UFW est le seul filtre**, et les ports que ces
+scripts ouvrent le sont pour de bon.
+
+Ce n'est pas une raison de retirer les avertissements : le jour où quelqu'un crée
+un pare-feu dans ce projet, **tout trafic entrant non déclaré tombe** — y compris
+l'UDP 10000 de Jitsi et le 3478 du relais — et la panne ressemble trait pour trait
+à un service qui n'écoute pas. Les scripts le rappellent donc au conditionnel, et
+disent comment vérifier :
+
+```
+sudo apt install hcloud-cli
+hcloud context create <nom>     # le jeton se tape là, jamais dans un dépôt
+hcloud server describe <machine> -o json | jq '.public_net.firewalls'
+```
+
+Une liste vide veut dire qu'il n'y a rien à ouvrir.

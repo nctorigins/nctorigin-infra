@@ -238,6 +238,10 @@ else
 fi
 
 printf '\n'
-jaune "IL RESTE LE PARE-FEU DE HETZNER : ouvrez $PORT/tcp dans la console de"
-jaune "l'hébergeur. Sans lui, tout ce qui précède est invisible de l'extérieur —"
-jaune "et c'est la panne la plus déroutante de cette machine, encore une fois."
+jaune "LE PARE-FEU DE L'HÉBERGEUR, SI VOUS EN AVEZ UN : le $PORT/tcp doit y être"
+jaune "déclaré, sinon tout ce qui précède est invisible de l'extérieur — et la"
+jaune "panne ressemble trait pour trait à un service qui n'écoute pas."
+dit "Au 3 octobre 2026 cette machine n'a aucun pare-feu Cloud (vérifié dans la"
+dit "console et par la trace : un port ouvert ici recevait l'internet deux heures"
+dit "plus tard). Pour s'en assurer :"
+dit "  hcloud server describe <machine> -o json | jq '.public_net.firewalls'"

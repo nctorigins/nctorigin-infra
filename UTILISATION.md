@@ -122,8 +122,9 @@ script says where to read it at the moment you need to hand it over.
 included. It offers to mint one, and warns that it will never be shown again.
 
 **Jitsi** does not install like the others: the script recalls the three things
-it cannot do — including **UDP 10000, to be opened in the Hetzner console**,
-without which everything looks right and no video gets through — then offers to
+it cannot do — including **UDP 10000, which must be declared in the hoster's Cloud
+firewall if one exists**, without which everything looks right and no video gets
+through — then offers to
 run `v3.1-safe`, the only one of the seven scripts that knows the machine
 already hosts something else.
 
@@ -163,8 +164,10 @@ environment when given, so they can be exercised against a sandbox copy instead 
 the live machine. A script that can only be run for real is a script nobody
 replays — and these two stopped halfway twice before that was true of them.
 
-Two limits it prints, because neither is visible from the machine: **UDP 3478
-must be open in the Hetzner console**, and while `no-tcp` sits in
+Two limits it prints, because neither is visible from the machine: **UDP 3478 must
+be declared in the hoster's Cloud firewall if one exists** — this machine has none
+as of 3 October 2026, verified in the console and by the trace, so UFW is the only
+filter — and while `no-tcp` sits in
 `/etc/turnserver.conf` coturn listens **only over UDP** — a player behind a
 network that blocks UDP gets no voice at all. `services/nctgame/turn-tcp.sh` opens
 that path, and it is not worth waiting for a field report: the networks concerned
