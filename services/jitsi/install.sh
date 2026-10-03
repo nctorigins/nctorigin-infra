@@ -26,7 +26,8 @@ else
     printf '\n'
     alerte "TROIS CHOSES QUE CE SCRIPT NE PEUT PAS FAIRE POUR VOUS :"
     printf '\n'
-    info "1. Ouvrir l'UDP 10000 dans le pare-feu de HETZNER — la console de"
+    info "1. Déclarer l'UDP 10000 dans le pare-feu de l'hébergeur S'IL EN EXISTE"
+    info "   un — la console de"
     info "   l'hébergeur, pas cette machine. Sans lui, tout paraîtra correct"
     info "   et la vidéo ne passera pas. C'est la panne la plus déroutante de"
     info "   cette installation."
@@ -51,7 +52,8 @@ else
 fi
 
 ouvre_ports 10000/udp 3478/udp 5349/tcp
-alerte "Rappel : ces ports doivent AUSSI être ouverts côté Hetzner."
+alerte "Rappel : si un pare-feu Cloud existe chez l'hébergeur, ces ports doivent"
+alerte "y être déclarés aussi. Cette machine n'en a aucun au 3 octobre 2026."
 
 # --- Le relais, qui sert au jeu ----------------------------------------------
 # `coturn` est posé par l'installation Jitsi, et il sert à quelqu'un d'autre : la

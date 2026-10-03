@@ -157,9 +157,9 @@ redemarrer prosody "toutes les conférences Jitsi en cours"
 redemarrer jicofo "toutes les conférences Jitsi en cours"
 
 printf '\n'
-jaune "RAPPEL : l'UDP 10000 doit être ouvert dans le pare-feu de HETZNER, pas"
-jaune "seulement ici. Sans lui, la salle s'ouvre, les jetons passent, et personne"
-jaune "ne s'entend — la panne la plus déroutante de cette installation."
+jaune "RAPPEL : si un pare-feu Cloud existe chez l'hébergeur, l'UDP 10000 doit y"
+jaune "être déclaré, pas seulement ici. Sinon la salle s'ouvre, les jetons passent,"
+jaune "et personne ne s'entend — la panne la plus déroutante de cette installation."
 printf '\n'
 dit "Le jeu NCTGame n'utilise plus ces salles : sa parole en direct est de pair"
 dit "à pair. Rien à faire de son côté après ce script."

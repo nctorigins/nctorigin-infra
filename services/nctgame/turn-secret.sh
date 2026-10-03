@@ -171,9 +171,11 @@ fi
 
 printf '\n'
 jaune "DEUX LIMITES À CONNAÎTRE, parce qu'elles ne se voient pas d'ici :"
-dit "1. L'UDP $PORT doit être ouvert dans le pare-feu de HETZNER. Sans lui, le"
-dit "   relais de secours est inutilisable — et il ne sert justement qu'aux"
-dit "   réseaux qui n'ont pas d'autre chemin."
+dit "1. SI un pare-feu Cloud existe chez l'hébergeur, l'UDP $PORT doit y être"
+dit "   déclaré : sinon le relais est inutilisable, et il ne sert justement qu'aux"
+dit "   réseaux qui n'ont pas d'autre chemin. Au 3 octobre 2026 cette machine n'en"
+dit "   a AUCUN — vérifiable par : hcloud server describe <machine> -o json |"
+dit "   jq '.public_net.firewalls' (liste vide = rien à ouvrir)."
 dit "2. Tant que 'no-tcp' est dans $TURN_CONF, coturn n'écoute QU'EN UDP. Un"
 dit "   joueur derrière un réseau qui bloque l'UDP n'aura pas de voix du tout."
 dit "   Pour lui ouvrir le TCP : services/nctgame/turn-tcp.sh"
