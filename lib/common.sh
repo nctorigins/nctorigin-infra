@@ -239,6 +239,93 @@ pose_certificat() {
 }
 
 # --- systemd ---------------------------------------------------------------
+# --- Rotation des journaux ---------------------------------------------------
+# LA LACUNE QUE CECI COMBLE, et elle valait un incident : les trois unités
+# écrivent dans /var/log/<service>.log par `StandardOutput=append:`, et ce dépôt
+# ne posait AUCUNE rotation. Les trois fichiers existaient sur la machine en
+# service, posés par les anciens installeurs de chaque dépôt — donc une machine
+# installée par ce bootstrap-ci écrivait sans borne, et personne ne l'aurait vu
+# avant que le disque soit plein.
+#
+# Ce n'est pas une hypothèse : le 22 septembre 2026, un disque plein a mis le jeu
+# à terre pendant quatre heures, par un autre fichier. On avait alors plafonné
+# CETTE source-là en oubliant celle-ci.
+#
+# `copytruncate` et pas la rotation ordinaire : systemd garde le fichier OUVERT
+# (`append:`), donc le renommer laisserait le service écrire dans l'inode
+# renommé — le nouveau fichier resterait vide et la rotation serait invisible.
+pose_rotation() {
+    local nom="$1" journal="$2" taille="${3:-50M}"
+    local cible="/etc/logrotate.d/${nom}"
+
+    # Le fichier est créé s'il manque : logrotate ne se plaint pas d'un journal
+    # absent (`missingok`), mais le créer rend l'état lisible tout de suite.
+    [ -f "$journal" ] || { touch "$journal"; chmod 644 "$journal"; }
+
+    # Écrit À CÔTÉ, validé, puis mis en place : un fichier de rotation invalide
+    # laissé dans /etc/logrotate.d fait échouer la rotation de TOUS les services
+    # de la machine, une fois par jour, sans rien dire. On ne pose donc que ce
+    # qui a été relu.
+    cat > "${cible}.nouveau" <<EOF
+# Posé par nctorigin-infra (pose_rotation). Ne pas modifier à la main : le
+# prochain bootstrap réécrira ce fichier.
+${journal} {
+    daily
+    rotate 14
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    maxsize ${taille}
+}
+EOF
+
+    # VÉRIFIER plutôt qu'annoncer : `--debug` analyse et simule sans rien
+    # toucher. Un fichier de rotation invalide fait échouer logrotate pour TOUS
+    # les services de la machine, silencieusement, une fois par jour.
+    if logrotate --debug "${cible}.nouveau" >/dev/null 2>&1; then
+        mv "${cible}.nouveau" "$cible"
+        ok "rotation des journaux posée : $journal (14 jours, max $taille)"
+    else
+        echec "fichier de rotation refusé par logrotate — RIEN n'a été posé"
+        # `|| true` : ce pipeline sert à MONTRER l'erreur, donc il rend non nul
+        # par construction — et `set -e` tuerait la fonction juste avant le
+        # nettoyage, laissant le fichier invalide en place. C'est la troisième
+        # fois que cette forme mord dans ce dépôt ; d'où le commentaire.
+        logrotate --debug "${cible}.nouveau" 2>&1 \
+            | grep -E "^error" | sed 's/^/      /' | head -3 || true
+        rm -f "${cible}.nouveau"
+        return 1
+    fi
+}
+
+# --- Épreuves avant mise en service ------------------------------------------
+# À lancer AVANT de toucher à systemd, et c'est tout l'intérêt : un dépôt qui ne
+# passe pas ses propres épreuves ne doit pas remplacer un service qui tourne.
+# L'ancien installeur du jeu faisait cela et ce dépôt l'avait perdu.
+#
+# Hors ligne et rapide, sinon rien : ces épreuves tournent pendant une
+# installation, souvent sur une machine qu'on vient de créer. Celles qui
+# demandent un serveur, un port ou un modèle n'ont pas leur place ici.
+verifie_epreuves() {
+    local dir="$1" user="$2"; shift 2
+    [ -x "$dir/venv/bin/python" ] || { alerte "venv absent : épreuves sautées"; return 0; }
+    # `mktemp` et pas un nom en $$ : un chemin prévisible dans /tmp peut être
+    # devancé par un lien symbolique, et ce code tourne en root.
+    local sortie; sortie="$(mktemp)"
+    attend "épreuves du dépôt avant mise en service"
+    if ( cd "$dir" && sudo -u "$user" timeout 300 "$@" >"$sortie" 2>&1 ); then
+        ok "épreuves passées — $(tail -1 "$sortie" | tr -d '\r')"
+        rm -f "$sortie"
+    else
+        echec "ÉPREUVES EN ÉCHEC : le service N'EST PAS remplacé."
+        tail -15 "$sortie" | sed 's/^/      /'
+        rm -f "$sortie"
+        return 1
+    fi
+}
+
 pose_unite() {
     local gabarit="$1" nom="$2" dir="$3" user="$4"
     local cible="/etc/systemd/system/${nom}.service"

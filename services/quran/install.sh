@@ -24,7 +24,11 @@ else
     alerte "Il est versionné : un dépôt à jour devrait le porter."
 fi
 
+# L'alignement, hors ligne et sans modèle : 41 cas en un battement de cil.
+verifie_epreuves "$DIR" "$APP_USER" venv/bin/python -m pytest tests/test_alignment.py -q
+
 pose_unite "$ICI/services/$S/service.service" "$UNI" "$DIR" "$APP_USER"
+pose_rotation "$UNI" "/var/log/${UNI}.log" 50M
 attends_dns "$DOM" || alerte "on continue, mais le certificat va probablement échouer"
 pose_nginx "$ICI/services/$S/nginx.conf" "$DOM" "$PRT"
 pose_certificat "$DOM" "$COURRIEL"
